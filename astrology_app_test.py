@@ -153,7 +153,7 @@ city_cache = read_city_cache()
 location_cache = read_location_cache()
 
 # Hàm lấy city_suggestions từ cache hoặc API
-def get_city_suggestions(query):
+def get_city_suggestions(query,retries=3):
     normalized_place = normalize_place(query)
 
     # Kiểm tra cache trước
@@ -186,8 +186,10 @@ def get_city_suggestions(query):
             st.error("Dịch vụ định vị không khả dụng. Vui lòng thử lại sau.")
             return []
         except Exception as e:
-            st.error(f"Đã xảy ra lỗi khi truy vấn địa điểm: {str(e)}")
-            return []
+            if normalized_place in city_cache:  # Nếu cache đã có place, hiển thị từ cache
+                return city_cache[normalized_place]
+            st.error(f"Error occurred: {e}")
+        return []
 
 # Hàm lấy lat, lon, timezone từ cache hoặc API
 def get_location_and_timezone(place):
@@ -205,45 +207,32 @@ def get_location_and_timezone(place):
             return lat, lon, timezone
         else:
             st.warning(f"Cache data for {place} is invalid. Retrieving fresh data.")
-
+    
     # Nếu cache không có hoặc dữ liệu không hợp lệ, gọi API để lấy dữ liệu mới
-    geolocator = Nominatim(user_agent="unique_astrology_app_name", timeout=10)  # Thêm timeout
-    time.sleep(1)  # Chờ để tránh giới hạn API
-    retries = 3
-    for attempt in range(retries):
-        try:
-            location = geolocator.geocode(place)
-            if location:
-                lat, lon = location.latitude, location.longitude
-                tf = TimezoneFinder()
-                timezone = tf.timezone_at(lat=lat, lng=lon)
+    geolocator = Nominatim(user_agent="astrology_app")
+    location = geolocator.geocode(place)  # Gọi API với chuỗi gốc
+    
+    if location:
+        lat, lon = location.latitude, location.longitude
+        tf = TimezoneFinder()
+        timezone = tf.timezone_at(lat=lat, lng=lon)
 
-                if timezone is None:
-                    st.error(f"Unable to retrieve timezone for location: {place}. Please try again.")
-                    return None, None, None
-
-                # Lưu lại kết quả vào cache nếu có dữ liệu hợp lệ
-                location_cache[normalized_place] = {
-                    'lat': lat,
-                    'lon': lon,
-                    'timezone': timezone
-                }
-                save_location_cache_to_file(normalized_place, lat, lon, timezone)
-
-                return lat, lon, timezone
-            else:
-                st.error(f"Cannot find location for place: {place}")
-                return None, None, None
-        except GeocoderTimedOut:
-            if attempt < retries - 1:
-                time.sleep(1)  # Thử lại sau 1 giây
-                continue
-            else:
-                st.error("Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.")
-                return None, None, None
-        except Exception as e:
-            st.error(f"Đã xảy ra lỗi khi truy vấn địa điểm: {str(e)}")
+        if timezone is None:
+            st.error(f"Unable to retrieve timezone for location: {place}. Please try again.")
             return None, None, None
+
+        # Lưu lại kết quả vào cache nếu có dữ liệu hợp lệ
+        location_cache[normalized_place] = {
+            'lat': lat, 
+            'lon': lon, 
+            'timezone': timezone
+        }
+        save_location_cache_to_file(normalized_place, lat, lon, timezone)
+
+        return lat, lon, timezone
+    else:
+        st.error(f"Cannot find location for place: {place}")
+        return None, None, None
 
 
 
