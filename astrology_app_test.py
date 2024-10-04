@@ -153,7 +153,7 @@ city_cache = read_city_cache()
 location_cache = read_location_cache()
 
 # Hàm lấy city_suggestions từ cache hoặc API
-def get_city_suggestions(query):
+def get_city_suggestions(query,retries=3):
     normalized_place = normalize_place(query)
 
     # Kiểm tra xem place đã có trong cache chưa
