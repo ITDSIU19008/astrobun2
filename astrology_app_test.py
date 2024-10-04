@@ -17,10 +17,9 @@ import json
 import openai
 import hashlib
 import time
+from geopy.exc import GeocoderTimedOut
 import geopy
 from unidecode import unidecode
-from geopy.exc import GeocoderTimedOut
-
 
 # Đường dẫn tương đối tới thư mục ephemeris (trong cùng thư mục với file Python chính)
 relative_ephe_path = os.path.join(os.path.dirname(__file__), 'sweph')
@@ -103,18 +102,21 @@ def save_city_cache_to_file(place, city_suggestions):
 def read_city_cache():
     cache = {}
     try:
-        with open(CITY_CACHE_FILE, "r") as f:
+        with open("city_cache.txt", "r") as f:
             lines = f.readlines()
             for line in lines:
+                # Kiểm tra xem dòng có thể phân tách thành 2 phần tử hay không
                 parts = line.strip().split("|")
                 if len(parts) == 2:
                     place, city_suggestions = parts
                     cache[place] = eval(city_suggestions)  # Convert the string list back to a list
                 else:
+                    # Nếu dòng không đủ dữ liệu, bỏ qua hoặc ghi log cảnh báo
                     print(f"Invalid cache entry: {line}")
     except FileNotFoundError:
         pass
     return cache
+
 
 # Hàm lưu cache của lat, lon, timezone vào file
 def save_location_cache_to_file(place, lat, lon, timezone):
@@ -125,10 +127,11 @@ def save_location_cache_to_file(place, lat, lon, timezone):
 def read_location_cache():
     cache = {}
     try:
-        with open(LOCATION_CACHE_FILE, "r") as f:
+        with open("location_cache.txt", "r") as f:
             lines = f.readlines()
             for line in lines:
                 parts = line.strip().split("|")
+                # Kiểm tra nếu dòng có đúng 4 phần tử thì mới tiến hành xử lý
                 if len(parts) == 4:
                     place, lat, lon, timezone = parts
                     cache[place] = {
@@ -137,6 +140,7 @@ def read_location_cache():
                         'timezone': timezone
                     }
                 else:
+                    # Nếu dòng không đủ dữ liệu, ghi log cảnh báo và bỏ qua dòng đó
                     print(f"Invalid cache entry: {line}")
     except FileNotFoundError:
         pass
@@ -1760,8 +1764,8 @@ if st.button(f"✨ {calculate_button_label} ✨"):
 
     # Nút Refresh để làm mới ứng dụng
 if st.button(f"{refresh_button_label}"):
-    st.rerun()
-    
+        st.experimental_rerun()
+
 # Hàm xóa cache từ session state và file txt
 def delete_cache_by_user_hash():
     if 'report_cache' not in st.session_state:
