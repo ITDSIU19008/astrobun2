@@ -102,21 +102,18 @@ def save_city_cache_to_file(place, city_suggestions):
 def read_city_cache():
     cache = {}
     try:
-        with open("city_cache.txt", "r") as f:
+        with open(CITY_CACHE_FILE, "r") as f:
             lines = f.readlines()
             for line in lines:
-                # Kiểm tra xem dòng có thể phân tách thành 2 phần tử hay không
                 parts = line.strip().split("|")
                 if len(parts) == 2:
                     place, city_suggestions = parts
                     cache[place] = eval(city_suggestions)  # Convert the string list back to a list
                 else:
-                    # Nếu dòng không đủ dữ liệu, bỏ qua hoặc ghi log cảnh báo
                     print(f"Invalid cache entry: {line}")
     except FileNotFoundError:
         pass
     return cache
-
 
 # Hàm lưu cache của lat, lon, timezone vào file
 def save_location_cache_to_file(place, lat, lon, timezone):
@@ -127,11 +124,10 @@ def save_location_cache_to_file(place, lat, lon, timezone):
 def read_location_cache():
     cache = {}
     try:
-        with open("location_cache.txt", "r") as f:
+        with open(LOCATION_CACHE_FILE, "r") as f:
             lines = f.readlines()
             for line in lines:
                 parts = line.strip().split("|")
-                # Kiểm tra nếu dòng có đúng 4 phần tử thì mới tiến hành xử lý
                 if len(parts) == 4:
                     place, lat, lon, timezone = parts
                     cache[place] = {
@@ -140,16 +136,14 @@ def read_location_cache():
                         'timezone': timezone
                     }
                 else:
-                    # Nếu dòng không đủ dữ liệu, ghi log cảnh báo và bỏ qua dòng đó
                     print(f"Invalid cache entry: {line}")
     except FileNotFoundError:
         pass
     return cache
 
 def normalize_place(place):
-    # Loại bỏ dấu và chuyển tất cả về chữ thường, đồng thời loại bỏ khoảng trắng
+    # Loại bỏ dấu, khoảng trắng, và các ký tự không phải chữ cái
     normalized = unidecode(place).replace(" ", "").lower()
-    # Loại bỏ các ký tự không phải là chữ cái (A-Z)
     normalized = re.sub(r'[^a-z]', '', normalized)
     return normalized
 
@@ -161,28 +155,38 @@ location_cache = read_location_cache()
 def get_city_suggestions(query):
     normalized_place = normalize_place(query)
 
-    # Kiểm tra xem place đã có trong cache chưa
+    # Kiểm tra cache trước
     if normalized_place in city_cache:
         return city_cache[normalized_place]
 
     # Nếu không có trong cache hoặc cache trống, gọi API
-    geolocator = Nominatim(user_agent="astrology_app_123", timeout=10)
+    geolocator = Nominatim(user_agent="astrology_app", timeout=10)  # Thêm timeout
     time.sleep(1)  # Chờ một giây để tránh giới hạn API
-    try:
-        location = geolocator.geocode(query, exactly_one=False, limit=5, language='en')
-        if location:
-            result = [f"{loc.address} ({loc.latitude}, {loc.longitude})" for loc in location]
-            city_cache[normalized_place] = result
-            save_city_cache_to_file(normalized_place, result)
-            return result
-        else:
-            st.warning("No matching city found.")
-    except Exception as e:
-        if normalized_place in city_cache:  # Nếu cache đã có place, hiển thị từ cache
-            return city_cache[normalized_place]
-        st.error(f"Error occurred: {e}")
-    return []
-
+    retries = 3
+    for attempt in range(retries):
+        try:
+            location = geolocator.geocode(query, exactly_one=False, limit=5, language='en')
+            if location:
+                result = [f"{loc.address} ({loc.latitude}, {loc.longitude})" for loc in location]
+                city_cache[normalized_place] = result
+                save_city_cache_to_file(normalized_place, result)
+                return result
+            else:
+                st.warning("No matching city found.")
+                return []
+        except GeocoderTimedOut:
+            if attempt < retries - 1:
+                time.sleep(1)  # Thử lại sau 1 giây
+                continue
+            else:
+                st.error("Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.")
+                return []
+        except GeocoderUnavailable:
+            st.error("Dịch vụ định vị không khả dụng. Vui lòng thử lại sau.")
+            return []
+        except Exception as e:
+            st.error(f"Đã xảy ra lỗi khi truy vấn địa điểm: {str(e)}")
+            return []
 
 # Hàm lấy lat, lon, timezone từ cache hoặc API
 def get_location_and_timezone(place):
@@ -200,32 +204,46 @@ def get_location_and_timezone(place):
             return lat, lon, timezone
         else:
             st.warning(f"Cache data for {place} is invalid. Retrieving fresh data.")
-    
-    # Nếu cache không có hoặc dữ liệu không hợp lệ, gọi API để lấy dữ liệu mới
-    geolocator = Nominatim(user_agent="astrology_app_123", timeout=10)
-    location = geolocator.geocode(place)  # Gọi API với chuỗi gốc
-    
-    if location:
-        lat, lon = location.latitude, location.longitude
-        tf = TimezoneFinder()
-        timezone = tf.timezone_at(lat=lat, lng=lon)
 
-        if timezone is None:
-            st.error(f"Unable to retrieve timezone for location: {place}. Please try again.")
+    # Nếu cache không có hoặc dữ liệu không hợp lệ, gọi API để lấy dữ liệu mới
+    geolocator = Nominatim(user_agent="astrology_app", timeout=10)  # Thêm timeout
+    time.sleep(1)  # Chờ để tránh giới hạn API
+    retries = 3
+    for attempt in range(retries):
+        try:
+            location = geolocator.geocode(place)
+            if location:
+                lat, lon = location.latitude, location.longitude
+                tf = TimezoneFinder()
+                timezone = tf.timezone_at(lat=lat, lng=lon)
+
+                if timezone is None:
+                    st.error(f"Unable to retrieve timezone for location: {place}. Please try again.")
+                    return None, None, None
+
+                # Lưu lại kết quả vào cache nếu có dữ liệu hợp lệ
+                location_cache[normalized_place] = {
+                    'lat': lat,
+                    'lon': lon,
+                    'timezone': timezone
+                }
+                save_location_cache_to_file(normalized_place, lat, lon, timezone)
+
+                return lat, lon, timezone
+            else:
+                st.error(f"Cannot find location for place: {place}")
+                return None, None, None
+        except GeocoderTimedOut:
+            if attempt < retries - 1:
+                time.sleep(1)  # Thử lại sau 1 giây
+                continue
+            else:
+                st.error("Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.")
+                return None, None, None
+        except Exception as e:
+            st.error(f"Đã xảy ra lỗi khi truy vấn địa điểm: {str(e)}")
             return None, None, None
 
-        # Lưu lại kết quả vào cache nếu có dữ liệu hợp lệ
-        location_cache[normalized_place] = {
-            'lat': lat, 
-            'lon': lon, 
-            'timezone': timezone
-        }
-        save_location_cache_to_file(normalized_place, lat, lon, timezone)
-
-        return lat, lon, timezone
-    else:
-        st.error(f"Cannot find location for place: {place}")
-        return None, None, None
 
 
 # Function to convert decimal degrees to DMS (degrees, minutes, seconds)
