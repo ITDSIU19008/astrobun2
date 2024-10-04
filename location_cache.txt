@@ -1,2 +1,6 @@
 hanoi|21.0283334|105.854041|Asia/Bangkok
 hochiminh|10.7763897|106.7011391|Asia/Ho_Chi_Minh
+quangnam|15.5761698|108.0527132|Asia/Ho_Chi_Minh
+haiduong|20.8930571|106.3725441|Asia/Bangkok
+benhvientudu|10.76872665|106.68589747397361|Asia/Ho_Chi_Minh
+angiang|10.5392057|105.2312822|Asia/Ho_Chi_Minh
