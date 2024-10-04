@@ -161,7 +161,7 @@ def get_city_suggestions(query):
         return city_cache[normalized_place]
 
     # Nếu không có trong cache hoặc cache trống, gọi API
-    geolocator = Nominatim(user_agent="astrology_app", timeout=10)  # Thêm timeout
+    geolocator = Nominatim(user_agent="unique_astrology_app_name", timeout=10)  # Thêm timeout
     time.sleep(1)  # Chờ một giây để tránh giới hạn API
     retries = 3
     for attempt in range(retries):
@@ -207,7 +207,7 @@ def get_location_and_timezone(place):
             st.warning(f"Cache data for {place} is invalid. Retrieving fresh data.")
 
     # Nếu cache không có hoặc dữ liệu không hợp lệ, gọi API để lấy dữ liệu mới
-    geolocator = Nominatim(user_agent="astrology_app", timeout=10)  # Thêm timeout
+    geolocator = Nominatim(user_agent="unique_astrology_app_name", timeout=10)  # Thêm timeout
     time.sleep(1)  # Chờ để tránh giới hạn API
     retries = 3
     for attempt in range(retries):
