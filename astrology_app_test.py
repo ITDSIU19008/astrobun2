@@ -152,8 +152,7 @@ def normalize_place(place):
 city_cache = read_city_cache()
 location_cache = read_location_cache()
 
-# Hàm lấy city_suggestions từ cache hoặc API
-def get_city_suggestions(query,retries=3):
+def get_city_suggestions(query, retries=3):
     normalized_place = normalize_place(query)
 
     # Kiểm tra cache trước
@@ -161,35 +160,47 @@ def get_city_suggestions(query,retries=3):
         return city_cache[normalized_place]
 
     # Nếu không có trong cache hoặc cache trống, gọi API
-    geolocator = Nominatim(user_agent="unique_astrology_app_name", timeout=10)  # Thêm timeout
+    geolocator = Nominatim(user_agent="astrology_app", timeout=10)  # Thêm timeout
     time.sleep(1)  # Chờ một giây để tránh giới hạn API
-    retries = 3
     for attempt in range(retries):
         try:
+            # Thực hiện yêu cầu tìm kiếm địa điểm
             location = geolocator.geocode(query, exactly_one=False, limit=5, language='en')
+            
+            # Nếu tìm thấy địa điểm, trả về danh sách các địa chỉ
             if location:
                 result = [f"{loc.address} ({loc.latitude}, {loc.longitude})" for loc in location]
+                # Lưu kết quả vào cache
                 city_cache[normalized_place] = result
                 save_city_cache_to_file(normalized_place, result)
                 return result
-            else:
-                st.warning("No matching city found.")
-                return []
+
+            # Nếu không tìm thấy, trả về danh sách rỗng
+            st.warning("No matching city found.")
+            return []
+        
         except GeocoderTimedOut:
             if attempt < retries - 1:
-                time.sleep(1)  # Thử lại sau 1 giây
-                continue
+                time.sleep(1)  # Chờ 1 giây trước khi thử lại
+                continue  # Nếu còn lần thử, tiếp tục thử lại
             else:
                 st.error("Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.")
                 return []
+        
         except GeocoderUnavailable:
             st.error("Dịch vụ định vị không khả dụng. Vui lòng thử lại sau.")
             return []
+        
         except Exception as e:
-            if normalized_place in city_cache:  # Nếu cache đã có place, hiển thị từ cache
-                return city_cache[normalized_place]
-            st.error(f"Error occurred: {e}")
-        return []
+            st.error(f"Đã xảy ra lỗi khi truy vấn địa điểm: {str(e)}")
+            return []
+    
+    # Trả về từ cache nếu có lỗi hoặc API không trả về kết quả
+    if normalized_place in city_cache:
+        return city_cache[normalized_place]
+
+    return []
+
 
 # Hàm lấy lat, lon, timezone từ cache hoặc API
 def get_location_and_timezone(place):
