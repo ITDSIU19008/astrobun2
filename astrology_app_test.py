@@ -1764,8 +1764,8 @@ if st.button(f"✨ {calculate_button_label} ✨"):
 
     # Nút Refresh để làm mới ứng dụng
 if st.button(f"{refresh_button_label}"):
-        st.experimental_rerun()
-
+    st.rerun()
+    
 # Hàm xóa cache từ session state và file txt
 def delete_cache_by_user_hash():
     if 'report_cache' not in st.session_state:
