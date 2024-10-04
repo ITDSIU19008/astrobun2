@@ -1,0 +1,2 @@
+hanoi|21.0283334|105.854041|Asia/Bangkok
+hochiminh|10.7763897|106.7011391|Asia/Ho_Chi_Minh

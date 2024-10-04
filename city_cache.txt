@@ -1,0 +1,3 @@
+hanoi|['Hà Nội, Vietnam (21.0283334, 105.854041)']
+hochiminh|['Ho Chi Minh City, Vietnam (10.7763897, 106.7011391)']
+hanam|['Hà Nam Province, Vietnam (20.5340294, 105.98102482169935)', 'Henan, China (34.0000001, 113.9999999)', 'Henan Mongol Autonomous County, Huangnan, Qinghai, China (34.5134583, 101.5456887)']
