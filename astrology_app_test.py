@@ -19,7 +19,7 @@ import hashlib
 import time
 import geopy
 from unidecode import unidecode
-from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+from geopy.exc import GeocoderTimedOut
 
 
 # Đường dẫn tương đối tới thư mục ephemeris (trong cùng thư mục với file Python chính)
