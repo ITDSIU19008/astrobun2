@@ -17,9 +17,10 @@ import json
 import openai
 import hashlib
 import time
-from geopy.exc import GeocoderTimedOut
 import geopy
 from unidecode import unidecode
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+
 
 # Đường dẫn tương đối tới thư mục ephemeris (trong cùng thư mục với file Python chính)
 relative_ephe_path = os.path.join(os.path.dirname(__file__), 'sweph')
