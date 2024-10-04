@@ -1,10 +1,5 @@
 # File: .streamlit/config.toml
 
-[server]
-headless = false
-enableCORS = false
-enableWebsocketCompression = true
-
 [theme]
 base="dark"
 primaryColor="#E34BFF"
