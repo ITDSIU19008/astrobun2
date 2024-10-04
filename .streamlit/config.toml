@@ -5,7 +5,7 @@ headless = true
 
 [theme]
 base="dark"
-primaryColor="#1E90FF"
+primaryColor="#9700FD"
 backgroundColor="#0E1117"
 secondaryBackgroundColor="#262730"
 textColor="#FAFAFA"
